@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TENMIR — Simulation stack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0d12;
+      --bg-elevated: #12121a;
+      --cyan: #2ee8ff;
+      --cyan-dim: rgba(46, 232, 255, 0.14);
+      --orange: #ff9f43;
+      --orange-dim: rgba(255, 159, 67, 0.12);
+      --green: #3dff9a;
+      --red: #ff4466;
+      --red-glow: rgba(255, 68, 102, 0.35);
+      --text: #f0f4fc;
+      --text-muted: rgba(200, 210, 235, 0.55);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-bg: rgba(18, 20, 32, 0.45);
+      --glass-strong: rgba(22, 24, 38, 0.72);
+      --font-display: "Space Grotesk", system-ui, sans-serif;
+      --font-body: "IBM Plex Sans", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --sidebar-w: 76px;
+      --radius: 14px;
+      --blur: 18px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 100% 80% at 50% -20%, rgba(46, 232, 255, 0.08), transparent 50%),
+        radial-gradient(ellipse 60% 50% at 100% 40%, rgba(255, 159, 67, 0.06), transparent 45%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.5;
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* —— Sidebar (reference: left rail, active demo glow) —— */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      border-right: 1px solid var(--glass-border);
+      background: rgba(8, 9, 14, 0.85);
+      backdrop-filter: blur(var(--blur));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.25rem 0;
+      gap: 0.35rem;
+      z-index: 20;
+    }
+
+    .brand-mini {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    .nav-item {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      display: grid;
+      place-items: center;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 1.1rem;
+      transition: color 0.2s, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--glass-border);
+    }
+
+    .nav-item.active {
+      color: var(--cyan);
+      border-color: rgba(46, 232, 255, 0.35);
+      background: var(--cyan-dim);
+      box-shadow: 0 0 24px rgba(46, 232, 255, 0.2), inset 0 0 0 1px rgba(46, 232, 255, 0.08);
+    }
+
+    .nav-item span { display: none; }
+
+    /* —— Main scroll —— */
+    .main {
+      flex: 1;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 2.5rem) 4rem;
+    }
+
+    /* —— Glass card primitive —— */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 24px 64px rgba(0, 0, 0, 0.45);
+    }
+
+    .glass-strong {
+      background: var(--glass-strong);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
+    /* —— Hero —— */
+    .hero {
+      margin-bottom: clamp(2rem, 5vw, 3.5rem);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 960px) {
+      .hero-grid { grid-template-columns: 1.05fr 0.95fr; align-items: stretch; }
+    }
+
+    .hero-visual {
+      min-height: 280px;
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .hero-visual iframe {
+      width: 100%;
+      height: min(380px, 42vw);
+      min-height: 260px;
+      border: 0;
+      display: block;
+      opacity: 0.95;
+    }
+
+    .hero-visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: var(--radius);
+      box-shadow: inset 0 0 80px rgba(13, 13, 18, 0.5);
+    }
+
+    .hero-copy h1 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(1.65rem, 4vw, 2.65rem);
+      letter-spacing: -0.04em;
+      line-height: 1.08;
+      margin-bottom: 1rem;
+      background: linear-gradient(115deg, #fff 0%, #c8f4ff 42%, #fff 58%, #e8ecff 100%);
+      background-size: 160% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 28px rgba(46, 232, 255, 0.18));
+    }
+
+    .hero-copy p.lead {
+      color: var(--text-muted);
+      font-size: clamp(0.95rem, 1.5vw, 1.08rem);
+      font-weight: 300;
+      max-width: 36em;
+      margin-bottom: 1.5rem;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.75rem 1.35rem;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(46, 232, 255, 0.2), rgba(46, 232, 255, 0.06));
+      border-color: rgba(46, 232, 255, 0.45);
+      color: #c9fbff;
+      box-shadow: 0 0 32px rgba(46, 232, 255, 0.15);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 40px rgba(46, 232, 255, 0.28);
+      border-color: rgba(46, 232, 255, 0.65);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.18); }
+
+    /* —— Section titles —— */
+    .section {
+      margin-bottom: clamp(2.5rem, 6vw, 4rem);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .section-head h2 {
+      font-family: var(--font-display);
+      font-size: clamp(1.1rem, 2vw, 1.35rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .section-head p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+    }
+
+    /* —— Pipeline (4 steps) —— */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .pipe-card {
+      padding: 1.25rem 1.35rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pipe-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cyan), transparent 70%);
+      opacity: 0.7;
+    }
+
+    .pipe-card:nth-child(2)::before { background: linear-gradient(90deg, var(--orange), transparent 70%); }
+    .pipe-card:nth-child(3)::before { background: linear-gradient(90deg, #a78bfa, transparent 70%); }
+    .pipe-card:nth-child(4)::before { background: linear-gradient(90deg, var(--green), transparent 70%); }
+
+    .pipe-step {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      margin-bottom: 0.5rem;
+    }
+
+    .pipe-card:nth-child(2) .pipe-step { color: var(--orange); }
+    .pipe-card h3 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .pipe-card p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* —— Insight cards row —— */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.1rem;
+    }
+
+    .insight {
+      padding: 1.35rem 1.4rem;
+      position: relative;
+    }
+
+    .insight.cyan { box-shadow: 0 0 0 1px rgba(46, 232, 255, 0.2), 0 20px 50px rgba(46, 232, 255, 0.06); }
+    .insight.orange { box-shadow: 0 0 0 1px rgba(255, 159, 67, 0.25), 0 20px 50px rgba(255, 159, 67, 0.06); }
+    .insight.green { box-shadow: 0 0 0 1px rgba(61, 255, 154, 0.2), 0 20px 50px rgba(61, 255, 154, 0.05); }
+
+    .insight h3 {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .insight p { font-size: 0.84rem; color: var(--text-muted); }
+
+    .fake-viz {
+      height: 72px;
+      margin-top: 1rem;
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fake-viz::after {
+      content: "";
+      position: absolute;
+      inset: 20% 8% 15%;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0.35;
+      border-radius: 4px;
+    }
+
+    .insight.orange .fake-viz::after { background: linear-gradient(90deg, transparent, var(--orange), transparent); }
+    .insight.green .fake-viz::after { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+
+    /* —— Live strip —— */
+    .live-strip {
+      padding: 1.5rem 1.75rem;
+    }
+
+    .live-strip .chart {
+      height: 120px;
+      margin-top: 1rem;
+      border-radius: 10px;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 8px,
+        rgba(255, 255, 255, 0.02) 8px,
+        rgba(255, 255, 255, 0.02) 9px
+      ),
+      linear-gradient(180deg, rgba(46, 232, 255, 0.08), transparent 40%, rgba(255, 159, 67, 0.06));
+      position: relative;
+    }
+
+    .live-strip .chart svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* —— Pricing —— */
+    .pricing {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    .price-card {
+      padding: 1.5rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .price-card.featured {
+      border-color: rgba(255, 255, 255, 0.22);
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.1), rgba(18, 20, 32, 0.55));
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 0 48px rgba(46, 232, 255, 0.12),
+        0 32px 64px rgba(0, 0, 0, 0.5);
+      transform: scale(1.02);
+    }
+
+    .price-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .price { font-family: var(--font-mono); font-size: 1.5rem; color: var(--cyan); margin: 0.75rem 0; }
+    .price-card.featured .price { color: #fff; text-shadow: 0 0 20px rgba(46, 232, 255, 0.4); }
+
+    .price-card ul {
+      list-style: none;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 0.5rem 0 1.25rem;
+      flex: 1;
+    }
+
+    .price-card li { padding: 0.35rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+
+    /* —— Fear / volatility band (reference red glow) —— */
+    .volatility {
+      padding: 1.75rem 1.85rem;
+      border-color: rgba(255, 68, 102, 0.35);
+      box-shadow:
+        0 0 0 1px rgba(255, 68, 102, 0.12) inset,
+        0 0 60px var(--red-glow),
+        0 24px 48px rgba(0, 0, 0, 0.4);
+      margin-bottom: 2.5rem;
+    }
+
+    .volatility h2 {
+      font-family: var(--font-display);
+      color: #ffb3c0;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .volatility p { font-size: 0.88rem; color: rgba(255, 200, 210, 0.65); max-width: 56ch; }
+
+    .spark {
+      height: 64px;
+      margin-top: 1.25rem;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(255, 68, 102, 0.15), transparent 40%, rgba(255, 159, 67, 0.1));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .spark::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 22px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--red), transparent 55%, var(--orange));
+      opacity: 0.6;
+      filter: blur(0.5px);
+    }
+
+    /* —— Footer —— */
+    footer.glass {
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    footer .logo {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    footer .tag {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 720px) {
+      .app { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0.75rem;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .brand-mini { display: none; }
+      .price-card.featured { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand-mini">TENMIR</div>
+      <a class="nav-item" href="#theory" title="Theory">◈</a>
+      <a class="nav-item" href="#research" title="Research">◇</a>
+      <a class="nav-item active" href="#demo" title="Demo">◎</a>
+      <a class="nav-item" href="#pricing" title="Pricing">▤</a>
+      <a class="nav-item" href="/console" title="Console" style="margin-top:auto">⎋</a>
+    </aside>
+
+    <div class="main">
+      <div class="wrap">
+        <header class="hero hero-grid" id="demo">
+          <div class="hero-copy glass glass-strong" style="padding: clamp(1.25rem, 3vw, 2rem);">
+            <h1>The future already branched.<br />We simulate the paths.</h1>
+            <p class="lead">
+              Web-only foresight console: ingest books and reports, retrieve grounded passages, and synthesize scenarios with Gemma 4 — structured context first, not a bag of keywords.
+            </p>
+            <div class="cta-row">
+              <a class="btn btn-primary" href="/console">Open console</a>
+              <a class="btn btn-ghost" href="/graph.html" target="_blank" rel="noopener">Raw graph view</a>
+            </div>
+          </div>
+          <div class="hero-visual glass" title="Live knowledge graph (canvas)">
+            <iframe src="/graph.html" title="Knowledge graph"></iframe>
+          </div>
+        </header>
+
+        <section class="section" id="theory">
+          <div class="section-head">
+            <h2>Simulation pipeline</h2>
+            <p>INGEST → INDEX → REASON → REPORT</p>
+          </div>
+          <div class="pipeline">
+            <article class="glass pipe-card">
+              <div class="pipe-step">01</div>
+              <h3>Corpus ingest</h3>
+              <p>Drop psychology and domain texts into the books folder or upload; PDF and markdown supported.</p>
+            </article>
+            <article class="glass pipe-card">
+              <div class="pipe-step">02</div>
+              <h3>Full-text index</h3>
+              <p>SQLite FTS5 for fast passage retrieval against your scenario wording.</p>
+            </article>
+            <article class="glass pipe-card">
+              <div class="pipe-step">03</div>
+              <h3>Gemma 4 reasoning</h3>
+              <p>OpenAI-compatible API: Google AI Studio, vLLM, or Ollama — same client code.</p>
+            </article>
+            <article class="glass pipe-card">
+              <div class="pipe-step">04</div>
+              <h3>Structured brief</h3>
+              <p>Mechanisms, stakeholders, risks, and limitations — speculation explicitly labeled.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="research">
+          <div class="section-head">
+            <h2>Grounding layers</h2>
+            <p>CYAN · AMBER · SIGNAL</p>
+          </div>
+          <div class="cards">
+            <article class="glass insight cyan">
+              <h3>Retrieval-first</h3>
+              <p>Excerpts ride along in the prompt so claims can point back to source spans, not vibes.</p>
+              <div class="fake-viz" aria-hidden="true"></div>
+            </article>
+            <article class="glass insight orange">
+              <h3>Institutional view</h3>
+              <p>Policy, media, and coalition dynamics — same glass language as your reference dashboard.</p>
+              <div class="fake-viz" aria-hidden="true"></div>
+            </article>
+            <article class="glass insight green">
+              <h3>Web-scale only</h3>
+              <p>Heavy simulation stays on the server; phones were never the target form factor.</p>
+              <div class="fake-viz" aria-hidden="true"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section glass live-strip">
+          <div class="section-head" style="margin-bottom: 0.5rem">
+            <h2>Live activity plane</h2>
+            <p>PLACEHOLDER VISUAL — swap for real charts / run metrics</p>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 52ch;">
+            Wire this strip to your API: chunk counts, last ingest, model latency, and queue depth. The glow palette matches the reference (teal + amber traces).
+          </p>
+          <div class="chart" aria-hidden="true">
+            <svg viewBox="0 0 400 120" preserveAspectRatio="none">
+              <path d="M0,90 Q40,85 80,60 T160,50 T240,70 T320,35 T400,45" fill="none" stroke="rgba(46,232,255,0.45)" stroke-width="2" />
+              <path d="M0,100 Q50,95 100,75 T200,80 T300,55 T400,65" fill="none" stroke="rgba(255,159,67,0.4)" stroke-width="2" />
+            </svg>
+          </div>
+        </section>
+
+        <section class="section" id="pricing">
+          <div class="section-head">
+            <h2>Pricing (template)</h2>
+            <p>REPLACE WITH YOUR TIERS</p>
+          </div>
+          <div class="pricing">
+            <div class="glass price-card">
+              <h3>Signal</h3>
+              <div class="price">$0</div>
+              <ul>
+                <li>Self-hosted stack</li>
+                <li>Bring your own keys</li>
+                <li>Community support</li>
+              </ul>
+              <a class="btn btn-ghost" href="/console">Start</a>
+            </div>
+            <div class="glass price-card featured">
+              <h3>Infinity</h3>
+              <div class="price">Custom</div>
+              <ul>
+                <li>Dedicated graphs + memory</li>
+                <li>Multi-agent path (future)</li>
+                <li>Priority integration</li>
+              </ul>
+              <a class="btn btn-primary" href="/console">Contact</a>
+            </div>
+            <div class="glass price-card">
+              <h3>Lab</h3>
+              <div class="price">Team</div>
+              <ul>
+                <li>Shared corpus</li>
+                <li>Audit logs</li>
+                <li>SSO (planned)</li>
+              </ul>
+              <a class="btn btn-ghost" href="/console">Details</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass volatility section" aria-labelledby="vol-title">
+          <h2 id="vol-title">Realistic data · volatility band</h2>
+          <p>
+            Simulations illustrate plausible narratives from grounded text and model behavior — not calibrated probabilities. Use this band in the UI for honest “heat” messaging (reference: red outer glow, volatile traces).
+          </p>
+          <div class="spark" aria-hidden="true"></div>
+        </section>
+
+        <footer class="glass footer" id="profile">
+          <div>
+            <div class="logo">TENMIR</div>
+            <div class="tag">simulation stack · web only</div>
+          </div>
+          <a class="btn btn-primary" href="/console">Start free trial</a>
+        </footer>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

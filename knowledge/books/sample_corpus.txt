@@ -1,0 +1,9 @@
+TENMIR sample corpus (replace with your own psychology texts).
+
+Social proof: people often infer correctness from how many others already agree, especially under uncertainty. That can accelerate cascades in online groups even when the underlying evidence is weak.
+
+Commitment and consistency: small public commitments tend to pull later behavior toward alignment with those commitments, which institutions sometimes exploit through staged opt-ins.
+
+Affective forecasting: individuals routinely overestimate the duration and intensity of future emotional reactions to both gains and setbacks, which distorts risk judgments in policy debates.
+
+Pluralistic ignorance: when private doubts are hidden, a silent majority can appear to support a norm that most privately reject, until a visible trigger collapses the facade.
