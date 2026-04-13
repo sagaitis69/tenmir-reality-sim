@@ -117,7 +117,7 @@
   </style>
 </head>
 <body>
-  <div class="top-bar"><a href="/">← Dashboard</a></div>
+  <div class="top-bar"><a href="/dashboard">Marketing shell</a></div>
   <iframe class="hero-frame" src="/graph.html" title="Network header"></iframe>
   <main>
     <section class="panel">
@@ -149,7 +149,7 @@
       try {
         const r = await fetch("/api/health");
         const j = await r.json();
-        status.textContent = j.has_api_key ? `chunks: ${j.chunks} · model: ${j.model}` : "chunks: " + j.chunks + " · set OPENAI_API_KEY";
+        status.textContent = j.has_llm_key ? `chunks: ${j.chunks} · model: ${j.model}` : "chunks: " + j.chunks + " · set LLM_API_KEY (Google AI Studio)";
       } catch (e) {
         status.textContent = "API unreachable";
       }
@@ -168,7 +168,11 @@
           body: JSON.stringify({ question: text }),
         });
         const j = await r.json();
-        if (!r.ok) throw new Error(j.detail || r.statusText);
+        if (!r.ok) {
+          const d = j.detail;
+          const msg = typeof d === "string" ? d : Array.isArray(d) ? d.map((x) => x.msg).join("; ") : r.statusText;
+          throw new Error(msg);
+        }
         out.textContent = j.answer;
         status.textContent = "used " + j.chunks_used + " passages";
       } catch (e) {

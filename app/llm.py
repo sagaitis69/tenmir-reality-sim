@@ -1,15 +1,16 @@
 from openai import OpenAI
 
-from .config import env
+from .config import env, llm_api_key, llm_base_url
 
 
 def client() -> OpenAI:
-    key = env("OPENAI_API_KEY")
-    base = env("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+    key = llm_api_key()
     if not key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
-    base = base.rstrip("/") + "/"
-    return OpenAI(api_key=key, base_url=base)
+        raise RuntimeError(
+            "LLM_API_KEY is not set. Use a Google AI Studio key (https://aistudio.google.com/apikey) "
+            "for hosted Gemma 4 — this is not an OpenAI company key."
+        )
+    return OpenAI(api_key=key, base_url=llm_base_url())
 
 
 def run_gemma(system: str, user: str, max_tokens: int = 2048) -> str:

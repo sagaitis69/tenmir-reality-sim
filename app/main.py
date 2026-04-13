@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import rag
-from .config import KNOWLEDGE_DIR, ROOT, env
+from .config import KNOWLEDGE_DIR, ROOT, env, llm_api_key
 from .llm import run_gemma
 
 load_dotenv(ROOT / ".env")
@@ -44,13 +44,13 @@ def _startup() -> None:
 
 
 @app.get("/")
-def landing() -> FileResponse:
-    return FileResponse(static_dir / "dashboard.html")
-
-
-@app.get("/console")
 def console() -> FileResponse:
     return FileResponse(static_dir / "index.html")
+
+
+@app.get("/dashboard")
+def landing() -> FileResponse:
+    return FileResponse(static_dir / "dashboard.html")
 
 
 @app.get("/graph.html")
@@ -64,7 +64,7 @@ def health() -> dict:
         "ok": True,
         "chunks": rag.chunk_count(),
         "model": env("LLM_MODEL", "gemma-4-31b-it"),
-        "has_api_key": bool(env("OPENAI_API_KEY")),
+        "has_llm_key": bool(llm_api_key()),
     }
 
 
@@ -98,6 +98,12 @@ async def ingest_upload(file: UploadFile = File(...)) -> dict:
 
 @app.post("/api/query")
 def query(body: QueryBody) -> dict:
+    if not llm_api_key():
+        raise HTTPException(
+            503,
+            "LLM_API_KEY missing. Add your Google AI Studio API key to .env (see .env.example). "
+            "Model is Gemma 4 via Google's API — not OpenAI.",
+        )
     excerpts = rag.retrieve(body.question, limit=16)
     if not excerpts:
         ctx = "(No retrieved passages — corpus empty or not indexed. Add .txt / .md / .pdf under knowledge/books and call POST /api/ingest/scan .)"
