@@ -1,5 +1,7 @@
 # TENMIR foresight console (Gemma 4 + book RAG)
 
+**Repository:** [github.com/sagaitis69/tenmir-reality-sim](https://github.com/sagaitis69/tenmir-reality-sim)
+
 **Product shape:** web only (browser UI + FastAPI backend). There is no native mobile app in this repo—use a responsive browser on phones if you want small screens.
 
 A **small, self-contained** slice of the [MiroFish](https://dev.to/arshtechpro/mirofish-the-open-source-ai-engine-that-builds-digital-worlds-to-predict-the-future-ki8) idea: ingest long-form texts (psychology and other books), retrieve relevant passages for a scenario, and call **Gemma 4** through an **OpenAI-compatible** HTTP API to produce a structured brief.
